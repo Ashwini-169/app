@@ -25,6 +25,41 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 UPLOADS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
+def resolve_file_path(stored_path):
+    """
+    Resolve file path to work across different environments (Windows/Linux/Railway).
+    
+    The database may contain:
+    - Windows paths: D:\\ASHWINI\\project\\...\\uploads\\filename.csv
+    - Linux paths: /app/django_backend/uploads/filename.csv
+    - Relative paths: uploads/filename.csv
+    
+    This function extracts the filename and looks for it in the correct uploads directory.
+    """
+    if not stored_path:
+        return None
+    
+    # If the file exists at the stored path, use it directly
+    if os.path.exists(stored_path):
+        return stored_path
+    
+    # Extract just the filename from the path
+    # Handle both Windows (\\) and Linux (/) separators
+    filename = stored_path.replace('\\', '/').split('/')[-1]
+    
+    # Look for the file in the uploads directory
+    resolved_path = os.path.join(UPLOADS_DIR, filename)
+    
+    if os.path.exists(resolved_path):
+        return resolved_path
+    
+    # Try without any path manipulation (in case it's a relative path)
+    if os.path.exists(filename):
+        return filename
+    
+    # Return None if file cannot be found
+    return None
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def health_check(request):
@@ -117,10 +152,22 @@ def get_latest_summary(request):
         if not latest_dataset:
             return Response({'error': 'No datasets found'}, status=status.HTTP_404_NOT_FOUND)
         
-        # Read the CSV file to get raw data
-        df = pd.read_csv(latest_dataset.file_path)
+        # Resolve file path for cross-platform compatibility
+        file_path = resolve_file_path(latest_dataset.file_path)
         
         serializer = DatasetSummarySerializer(latest_dataset)
+        
+        if not file_path:
+            # Return summary only if file not found
+            return Response({
+                'summary': serializer.data,
+                'raw_data': [],
+                'warning': f'CSV file not found. Original path: {latest_dataset.file_path}'
+            }, status=status.HTTP_200_OK)
+        
+        # Read the CSV file to get raw data
+        df = pd.read_csv(file_path)
+        
         return Response({
             'summary': serializer.data,
             'raw_data': df.to_dict('records')
@@ -143,8 +190,20 @@ def get_dataset_detail(request, dataset_id):
     try:
         dataset = Dataset.objects.get(id=dataset_id)
         
+        # Resolve file path for cross-platform compatibility
+        file_path = resolve_file_path(dataset.file_path)
+        
+        if not file_path:
+            # Return summary only if file not found
+            serializer = DatasetSummarySerializer(dataset)
+            return Response({
+                'summary': serializer.data,
+                'raw_data': [],
+                'warning': f'CSV file not found. Original path: {dataset.file_path}'
+            }, status=status.HTTP_200_OK)
+        
         # Read the CSV file to get raw data
-        df = pd.read_csv(dataset.file_path)
+        df = pd.read_csv(file_path)
         
         serializer = DatasetSummarySerializer(dataset)
         return Response({
@@ -169,8 +228,16 @@ def export_csv(request, dataset_id=None):
         if not dataset:
             return Response({'error': 'No dataset found'}, status=status.HTTP_404_NOT_FOUND)
         
+        # Resolve file path for cross-platform compatibility
+        file_path = resolve_file_path(dataset.file_path)
+        
+        if not file_path:
+            return Response({
+                'error': f'CSV file not found on server. The file may have been uploaded on a different system. Original path: {dataset.file_path}'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
         # Read the original CSV
-        df = pd.read_csv(dataset.file_path)
+        df = pd.read_csv(file_path)
         
         # Create response
         response = HttpResponse(content_type='text/csv')
@@ -224,8 +291,16 @@ def generate_pdf_report(request, dataset_id=None):
         if not dataset:
             return Response({'error': 'No dataset found'}, status=status.HTTP_404_NOT_FOUND)
         
+        # Resolve file path for cross-platform compatibility
+        file_path = resolve_file_path(dataset.file_path)
+        
+        if not file_path:
+            return Response({
+                'error': f'CSV file not found on server. The file may have been uploaded on a different system. Original path: {dataset.file_path}'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
         # Read the CSV file to get raw data
-        df = pd.read_csv(dataset.file_path)
+        df = pd.read_csv(file_path)
         
         # Create PDF in memory
         buffer = io.BytesIO()
