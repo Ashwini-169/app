@@ -191,38 +191,85 @@ function Dashboard({ onLogout }) {
     setLoadingDataset(true);
     setError('');
     
-    const maxRetries = 5;
-    const retryDelay = 2000; // 2 seconds between retries
+    const maxRetries = 3;
+    const retryDelay = 1500;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        // Check API health before attempting
+        // Check API health first
         const isHealthy = await checkApiHealth();
-        if (!isHealthy && attempt > 1) {
+        if (!isHealthy) {
           setError(`API is not responding. Retrying... (${attempt}/${maxRetries})`);
           await new Promise(resolve => setTimeout(resolve, retryDelay));
           continue;
         }
         
-        // Fetch the specific dataset's data from the proper endpoint
-        const response = await axios.get(`${API_URL}/api/dataset/${dataset.id}/`, {
-          headers: getAuthHeaders(),
-          timeout: 10000, // 10 second timeout
-        });
+        // Try Method 1: New dedicated dataset endpoint (preferred)
+        try {
+          const response = await axios.get(`${API_URL}/api/dataset/${dataset.id}/`, {
+            headers: getAuthHeaders(),
+            timeout: 8000,
+          });
 
-        // Update summary and raw data with the selected dataset
-        setSummary(response.data.summary);
-        setRawData(response.data.raw_data || []);
-        setCurrentDatasetId(dataset.id);
-        setError(''); // Clear any previous errors
-        setLoadingDataset(false);
-        return; // Success - exit the function
+          if (response.data && response.data.summary && response.data.raw_data) {
+            setSummary(response.data.summary);
+            setRawData(response.data.raw_data);
+            setCurrentDatasetId(dataset.id);
+            setError('');
+            setLoadingDataset(false);
+            return;
+          }
+        } catch (datasetError) {
+          console.warn('Dataset endpoint failed, trying CSV fallback...', datasetError.message);
+          
+          // Method 2: Fallback to CSV export and parse
+          try {
+            const csvResponse = await axios.get(`${API_URL}/api/export/csv/${dataset.id}/`, {
+              headers: getAuthHeaders(),
+              responseType: 'text',
+              timeout: 8000,
+            });
+            
+            if (csvResponse.data && typeof csvResponse.data === 'string') {
+              const lines = csvResponse.data.split('\n').filter(line => line.trim());
+              if (lines.length > 1) {
+                const headers = lines[0].split(',').map(h => h.trim());
+                const parsedData = lines.slice(1).map(line => {
+                  const values = line.split(',');
+                  const row = {};
+                  headers.forEach((header, index) => {
+                    row[header] = values[index]?.trim() || '';
+                  });
+                  return row;
+                });
+
+                setSummary({
+                  total_equipment_count: dataset.total_equipment_count,
+                  avg_flowrate: dataset.avg_flowrate,
+                  avg_pressure: dataset.avg_pressure,
+                  avg_temperature: dataset.avg_temperature,
+                  equipment_type_distribution: dataset.equipment_type_distribution,
+                  name: dataset.name,
+                  id: dataset.id,
+                  upload_timestamp: dataset.upload_timestamp,
+                });
+                setRawData(parsedData);
+                setCurrentDatasetId(dataset.id);
+                setError('');
+                setLoadingDataset(false);
+                return;
+              }
+            }
+          } catch (csvError) {
+            console.warn('CSV fallback failed:', csvError.message);
+          }
+        }
         
       } catch (err) {
         console.error(`Attempt ${attempt} failed:`, err.message);
         
-        // If this was the last attempt, show error and load summary only
         if (attempt === maxRetries) {
+          // Last resort: Load summary only with available data
           setSummary({
             total_equipment_count: dataset.total_equipment_count,
             avg_flowrate: dataset.avg_flowrate,
@@ -235,17 +282,13 @@ function Dashboard({ onLogout }) {
           });
           setRawData([]);
           setCurrentDatasetId(dataset.id);
-          setError('Failed to load full dataset after multiple attempts. Showing summary only.');
+          setError('Unable to load full dataset. Charts and tables may be limited. Summary statistics are available.');
           setLoadingDataset(false);
           return;
         }
         
-        // Show retry message
-        setError(`Loading failed. Retrying... (${attempt}/${maxRetries})`);
-        
-        // Wait before retrying with exponential backoff
-        const delay = retryDelay * attempt;
-        await new Promise(resolve => setTimeout(resolve, delay));
+        setError(`Loading... (${attempt}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay * attempt));
       }
     }
   };
