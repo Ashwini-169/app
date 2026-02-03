@@ -20,6 +20,7 @@ function Dashboard({ onLogout }) {
   const [currentDatasetId, setCurrentDatasetId] = useState(null);
   const [loadingDataset, setLoadingDataset] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
+  const [currentHistoryPage, setCurrentHistoryPage] = useState(0);
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('access_token');
@@ -276,6 +277,25 @@ function Dashboard({ onLogout }) {
     }
   };
 
+  // Pagination for history
+  const historyPerPage = 6;
+  const totalHistoryPages = Math.ceil(history.length / historyPerPage);
+  const historyStartIndex = currentHistoryPage * historyPerPage;
+  const historyEndIndex = historyStartIndex + historyPerPage;
+  const paginatedHistory = history.slice(historyStartIndex, historyEndIndex);
+
+  const handleNextHistoryPage = () => {
+    if (currentHistoryPage < totalHistoryPages - 1) {
+      setCurrentHistoryPage(currentHistoryPage + 1);
+    }
+  };
+
+  const handlePrevHistoryPage = () => {
+    if (currentHistoryPage > 0) {
+      setCurrentHistoryPage(currentHistoryPage - 1);
+    }
+  };
+
   return (
     <div className="dashboard" data-testid="dashboard-container">
       <header className="dashboard-header">
@@ -519,9 +539,32 @@ function Dashboard({ onLogout }) {
             </section>
 
             <section className="history-section">
-              <h3>Upload History</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h3>Upload History (Showing {historyStartIndex + 1}-{Math.min(historyEndIndex, history.length)} of {history.length})</h3>
+                {totalHistoryPages > 1 && (
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <button 
+                      className="btn-secondary" 
+                      onClick={handlePrevHistoryPage} 
+                      disabled={currentHistoryPage === 0}
+                      style={{ opacity: currentHistoryPage === 0 ? 0.5 : 1, cursor: currentHistoryPage === 0 ? 'not-allowed' : 'pointer' }}
+                    >
+                      ← Previous
+                    </button>
+                    <span style={{ color: '#B0BEC5', fontSize: '0.9rem' }}>Page {currentHistoryPage + 1} of {totalHistoryPages}</span>
+                    <button 
+                      className="btn-secondary" 
+                      onClick={handleNextHistoryPage} 
+                      disabled={currentHistoryPage === totalHistoryPages - 1}
+                      style={{ opacity: currentHistoryPage === totalHistoryPages - 1 ? 0.5 : 1, cursor: currentHistoryPage === totalHistoryPages - 1 ? 'not-allowed' : 'pointer' }}
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
+              </div>
               <div className="history-cards">
-                {history.map((item) => (
+                {paginatedHistory.map((item) => (
                   <div 
                     className={`history-card ${item.id === currentDatasetId ? 'active' : ''}`} 
                     key={item.id}
