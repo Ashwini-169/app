@@ -18,6 +18,8 @@ function Dashboard({ onLogout }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [currentDatasetId, setCurrentDatasetId] = useState(null);
+  const [loadingDataset, setLoadingDataset] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('access_token');
@@ -179,6 +181,9 @@ function Dashboard({ onLogout }) {
   };
 
   const handleHistoryClick = async (dataset) => {
+    setLoadingDataset(true);
+    setError('');
+    
     try {
       // Fetch the specific dataset's raw data
       const response = await axios.get(`${API_URL}/api/export/csv/${dataset.id}/`, {
@@ -224,6 +229,9 @@ function Dashboard({ onLogout }) {
       });
       setRawData([]);
       setCurrentDatasetId(dataset.id);
+      setError('Failed to load full dataset. Showing summary only.');
+    } finally {
+      setLoadingDataset(false);
     }
   };
 
@@ -238,12 +246,35 @@ function Dashboard({ onLogout }) {
   const equipmentTypeLabels = summary ? Object.keys(summary.equipment_type_distribution) : [];
   const equipmentTypeCounts = summary ? Object.values(summary.equipment_type_distribution) : [];
 
+  // For parameter comparison - keep first 20 for readability
   const parameterData = rawData.slice(0, 20).map(item => ({
     name: item['Equipment Name'],
     flowrate: item.Flowrate,
     pressure: item.Pressure,
     temperature: item.Temperature,
   }));
+
+  // For other charts - use all data
+  const allFlowrateData = rawData.map(item => parseFloat(item.Flowrate));
+  
+  // Pagination for table
+  const rowsPerPage = 50;
+  const totalPages = Math.ceil(rawData.length / rowsPerPage);
+  const startIndex = currentPage * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+  const paginatedData = rawData.slice(startIndex, endIndex);
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages - 1) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
 
   return (
     <div className="dashboard" data-testid="dashboard-container">
@@ -263,6 +294,15 @@ function Dashboard({ onLogout }) {
               </button>
             </>
           )}
+        {loadingDataset && (
+          <div className="loading-overlay">
+            <div className="loading-spinner">
+              <div className="spinner"></div>
+              <p>Loading dataset...</p>
+            </div>
+          </div>
+        )}
+        
           <button className="btn-logout" onClick={onLogout} data-testid="logout-button">
             Logout
           </button>
@@ -315,15 +355,15 @@ function Dashboard({ onLogout }) {
                 <div className="stat-value">{summary.total_equipment_count}</div>
               </div>
               <div className="stat-card" data-testid="avg-flowrate-card">
-                <div className="stat-label">Avg Flowrate</div>
+                <div className="stat-label">Avg Flowrate (L/min)</div>
                 <div className="stat-value">{summary.avg_flowrate.toFixed(2)}</div>
               </div>
               <div className="stat-card" data-testid="avg-pressure-card">
-                <div className="stat-label">Avg Pressure</div>
+                <div className="stat-label">Avg Pressure (psi)</div>
                 <div className="stat-value">{summary.avg_pressure.toFixed(2)}</div>
               </div>
               <div className="stat-card" data-testid="avg-temperature-card">
-                <div className="stat-label">Avg Temperature</div>
+                <div className="stat-label">Avg Temperature (°F)</div>
                 <div className="stat-value">{summary.avg_temperature.toFixed(2)}</div>
               </div>
             </section>
@@ -359,23 +399,23 @@ function Dashboard({ onLogout }) {
               </div>
 
               <div className="chart-card">
-                <h3>Parameter Comparison </h3>
+                <h3>Parameter Comparison (First 20)</h3>
                 <Bar
                   data={{
                     labels: parameterData.map((d) => d.name),
                     datasets: [
                       {
-                        label: 'Flowrate',
+                        label: 'Flowrate (L/min)',
                         data: parameterData.map((d) => d.flowrate),
                         backgroundColor: 'rgba(79, 195, 247, 0.7)',
                       },
                       {
-                        label: 'Pressure',
+                        label: 'Pressure (psi)',
                         data: parameterData.map((d) => d.pressure),
                         backgroundColor: 'rgba(102, 187, 106, 0.7)',
                       },
                       {
-                        label: 'Temperature',
+                        label: 'Temperature (°F)',
                         data: parameterData.map((d) => d.temperature),
                         backgroundColor: 'rgba(255, 167, 38, 0.7)',
                       },
@@ -388,14 +428,17 @@ function Dashboard({ onLogout }) {
                     },
                     scales: {
                       x: { ticks: { color: '#B0BEC5', display: false } },
-                      y: { ticks: { color: '#B0BEC5' } },
+                      y: { 
+                        title: { display: true, text: 'Values', color: '#B0BEC5' },
+                        ticks: { color: '#B0BEC5' } 
+                      },
                     },
                   }}
                 />
               </div>
 
               <div className="chart-card">
-                <h3>Temperature vs Pressure Analysis</h3>
+                <h3>Temperature vs Pressure Analysis (All Data)</h3>
                 <Scatter
                   data={{
                     datasets: [
@@ -406,6 +449,7 @@ function Dashboard({ onLogout }) {
                           y: parseFloat(item.Pressure)
                         })),
                         backgroundColor: 'rgba(79, 195, 247, 0.7)',
+                        pointRadius: 3,
                       },
                     ],
                   }}
@@ -438,18 +482,19 @@ function Dashboard({ onLogout }) {
               </div>
 
               <div className="chart-card">
-                <h3>Flowrate Performance Trend (First 20)</h3>
+                <h3>Flowrate Performance Trend (All Equipment)</h3>
                 <Line
                   data={{
-                    labels: parameterData.map((d) => d.name),
+                    labels: rawData.map((item, idx) => idx + 1),
                     datasets: [
                       {
-                        label: 'Flowrate',
-                        data: parameterData.map((d) => d.flowrate),
+                        label: 'Flowrate (L/min)',
+                        data: allFlowrateData,
                         fill: true,
                         backgroundColor: 'rgba(79, 195, 247, 0.3)',
                         borderColor: 'rgba(79, 195, 247, 1)',
-                        tension: 0.1
+                        tension: 0.1,
+                        pointRadius: 0,
                       },
                     ],
                   }}
@@ -459,7 +504,10 @@ function Dashboard({ onLogout }) {
                       legend: { display: false },
                     },
                     scales: {
-                      x: { ticks: { color: '#B0BEC5', autoSkip: false, maxRotation: 45, minRotation: 45 } },
+                      x: { 
+                        title: { display: true, text: 'Equipment Index', color: '#B0BEC5' },
+                        ticks: { color: '#B0BEC5', maxTicksLimit: 20 } 
+                      },
                       y: { 
                         title: { display: true, text: 'Flowrate (L/min)', color: '#B0BEC5' },
                         ticks: { color: '#B0BEC5' } 
@@ -529,21 +577,44 @@ function Dashboard({ onLogout }) {
             </section>
 
             <section className="data-table-section">
-              <h3>Equipment Data (First 50 rows)</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h3>Equipment Data (Showing {startIndex + 1}-{Math.min(endIndex, rawData.length)} of {rawData.length} rows)</h3>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <button 
+                    className="btn-secondary" 
+                    onClick={handlePrevPage} 
+                    disabled={currentPage === 0}
+                    style={{ opacity: currentPage === 0 ? 0.5 : 1, cursor: currentPage === 0 ? 'not-allowed' : 'pointer' }}
+                  >
+                    ← Previous
+                  </button>
+                  <span style={{ color: '#B0BEC5', fontSize: '0.9rem' }}>Page {currentPage + 1} of {totalPages}</span>
+                  <button 
+                    className="btn-secondary" 
+                    onClick={handleNextPage} 
+                    disabled={currentPage === totalPages - 1}
+                    style={{ opacity: currentPage === totalPages - 1 ? 0.5 : 1, cursor: currentPage === totalPages - 1 ? 'not-allowed' : 'pointer' }}
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
               <div className="table-wrapper">
                 <table className="data-table" data-testid="data-table">
                   <thead>
                     <tr>
+                      <th>#</th>
                       <th>Equipment Name</th>
                       <th>Equipment Type</th>
-                      <th>Flowrate</th>
-                      <th>Pressure</th>
-                      <th>Temperature</th>
+                      <th>Flowrate (L/min)</th>
+                      <th>Pressure (psi)</th>
+                      <th>Temperature (°F)</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {rawData.slice(0, 50).map((row, idx) => (
-                      <tr key={idx}>
+                    {paginatedData.map((row, idx) => (
+                      <tr key={startIndex + idx}>
+                        <td>{startIndex + idx + 1}</td>
                         <td>{row['Equipment Name']}</td>
                         <td>{row['Equipment Type']}</td>
                         <td>{row.Flowrate}</td>
