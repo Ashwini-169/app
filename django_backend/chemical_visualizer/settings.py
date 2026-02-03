@@ -24,8 +24,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -143,4 +143,12 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+]
+
+# CSRF settings for production
+CSRF_TRUSTED_ORIGINS = [
+    'https://chemical-backend-production-dd2c.up.railway.app',
+    'https://*.railway.app',
+    'http://localhost:3000',
+    'http://localhost:8000',
 ]
