@@ -159,10 +159,12 @@ class Dashboard(QMainWindow):
         """Create dashboard header matching React design"""
         header = QFrame()
         header.setObjectName("dashboardHeader")
-        header.setFixedHeight(80)
+        header.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        header.setMinimumHeight(72)
         
         layout = QHBoxLayout(header)
-        layout.setContentsMargins(40, 20, 40, 20)
+        layout.setContentsMargins(24, 16, 24, 16)
+        layout.setAlignment(Qt.AlignVCenter)
         
         # Left side - Title
         left_widget = QWidget()
@@ -957,17 +959,23 @@ class Dashboard(QMainWindow):
             #dashboardHeader {
                 background: rgba(15, 32, 39, 0.95);
                 border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                padding: 16px 24px;
+                min-height: 72px;
             }
             
             #headerTitle {
                 font-size: 24px;
-                font-weight: bold;
+                font-weight: 700;
                 color: #FFFFFF;
+                line-height: 1.2;
+                letter-spacing: 0.3px;
             }
             
             #headerSubtitle {
                 font-size: 14px;
                 color: #90A4AE;
+                margin-top: 2px;
+                line-height: 1.2;
             }
             
             /* Buttons */
