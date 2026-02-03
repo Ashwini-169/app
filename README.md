@@ -1,40 +1,56 @@
 # Chemical Equipment Parameter Visualizer
 
+
 A complete **Hybrid Web + Desktop Application** for analyzing and visualizing chemical equipment parameters from CSV files.
+
+---
+
+## 🚀 Production Deployment
+
+### Backend (Django)
+- **Production URL:** https://chemical-backend-production-dd2c.up.railway.app/
+
+### Frontend (React)
+- **Production URL:** https://chemical-frontend-production-974b.up.railway.app/
+
+### Test User Credentials
+```
+Username: testuser
+Password: testpass123
+```
+
+---
 
 ## 🏭 Architecture Overview
 
 ### Technology Stack
-- **Backend**: Django 5.2 + Django REST Framework
-- **Database**: SQLite3 (file-based)
-- **Frontend (Web)**: React 19 + Chart.js
-- **Frontend (Desktop)**: PyQt5 + Matplotlib (To be implemented)
+
+- **Backend**: Django 5.2 + Django REST Framework (Production: Railway)
+- **Database**: SQLite3 (file-based, production-ready)
+- **Frontend (Web)**: React 19 + Chart.js (Production: Railway)
+- **Frontend (Desktop)**: PyQt5 + Matplotlib (Planned)
 - **Data Processing**: Pandas
 - **Authentication**: JWT (Simple JWT)
 - **PDF Generation**: ReportLab
 
 ### System Architecture
 ```
-┌─────────────────┐
-│  React Web App   │
-│  (Port 3000)     │
-└────────┬────────┘
-         │
-         │ REST API
-         │
-┌────────┴────────┐
-│  Django Backend  │
-│  (Port 8002)     │
-│                  │
-│  • REST APIs     │
-│  • Pandas        │
-│  • ReportLab     │
-└────────┬────────┘
-         │
-┌────────┴────────┐
-│  SQLite Database │
-│  (db.sqlite3)    │
-└─────────────────┘
+┌─────────────────────────────────────────────┐
+│           React Web App (Frontend)          │
+│   https://chemical-frontend-production-974b.up.railway.app/   │
+└───────────────┬─────────────────────────────┘
+                │ REST API
+                │
+┌───────────────┴─────────────────────────────┐
+│           Django Backend (API)              │
+│   https://chemical-backend-production-dd2c.up.railway.app/    │
+│   • REST APIs  • Pandas  • ReportLab        │
+└───────────────┬─────────────────────────────┘
+                │
+┌───────────────┴───────────────┐
+│      SQLite Database          │
+│      (db.sqlite3)             │
+└───────────────────────────────┘
 ```
 
 ---
@@ -370,15 +386,16 @@ Heat Exchanger-C3,Heat Exchanger,180.3,55.0,95.2
 
 ---
 
+
 ## 🔑 Default Credentials
 
 **Admin User:**
 - Username: `admin`
 - Password: `admin123`
 
-**Test User** (create via registration):
+**Test User (Production):**
 - Username: `testuser`
-- Password: `password123`
+- Password: `testpass123`
 
 ---
 
@@ -410,8 +427,11 @@ curl -X GET http://localhost:8002/api/summary/latest/ \
 
 ### 2. Test Frontend
 
-1. Open browser: `http://localhost:3000`
-2. Register a new user or login with admin credentials
+1. Open browser: [Production Frontend](https://chemical-frontend-production-974b.up.railway.app/)
+2. Login with:
+   - Username: `testuser`
+   - Password: `testpass123`
+   (Or register a new user)
 3. Upload the sample CSV file
 4. View statistics, charts, and data table
 5. Export CSV or PDF report
@@ -603,6 +623,8 @@ For issues or questions:
 **Pending:**
 - ⏳ PyQt5 desktop application
 - ⏳ Matplotlib desktop charts
+
+---
 
 ---
 
