@@ -91,3 +91,10 @@ Frontend:
 - [x] Responsive design
 
 See API_DOCUMENTATION.md for detailed API specs.
+```curl -X GET http://localhost:8002/api/summary/latest/ \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcwMTI5NzQyLCJpYXQiOjE3NzAwNDMzNDIsImp0aSI6ImQ3YWZlZmIyMTkxMjQxMWViNTkyOTFhYjUyMTQ1YjlhIiwidXNlcl9pZCI6IjIifQ.s8QYx-GffJdLso94wtKfjNg_rtiYTRzmpaN4ENgJ_LA"
+
+```
+```curl -X GET http://localhost:8002/api/history/ \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcwMTI5NzQyLCJpYXQiOjE3NzAwNDMzNDIsImp0aSI6ImQ3YWZlZmIyMTkxMjQxMWViNTkyOTFhYjUyMTQ1YjlhIiwidXNlcl9pZCI6IjIifQ.s8QYx-GffJdLso94wtKfjNg_rtiYTRzmpaN4ENgJ_LA"
+```

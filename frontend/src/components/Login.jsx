@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 
 const API_URL = process.env.NODE_ENV === 'development' 
-  ? 'http://localhost:8002' 
+  ? 'http://localhost:8002' || 'https://1jr4g0fp-8002.inc1.devtunnels.ms/'
   : `${window.location.protocol}//${window.location.hostname}:8002`;
 
 function Login({ onLogin }) {

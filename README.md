@@ -147,6 +147,17 @@ cd /app/django_backend
 2. **Activate virtual environment**
 ```bash
 source venv/bin/activate
+
+
+# Resolve project venv site-packages
+$proj_site = Resolve-Path .\.venv\Lib\site-packages
+
+# Conda base site-packages (adjust only if your path differs)
+$mlbase_site = "D:\program\conda\Lib\site-packages"
+
+# Create a .pth file that points to Conda base packages
+"$mlbase_site" | Out-File -FilePath (Join-Path $proj_site "conda_mlbase.pth") -Encoding ascii
+
 ```
 
 3. **Install dependencies** (Already done)

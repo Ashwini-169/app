@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend } from 'chart.js';
-import { Bar, Line, Pie } from 'react-chartjs-2';
+import { Bar, Line, Pie, Scatter } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend);
 
@@ -17,6 +17,7 @@ function Dashboard({ onLogout }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [currentDatasetId, setCurrentDatasetId] = useState(null);
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('access_token');
@@ -35,6 +36,10 @@ function Dashboard({ onLogout }) {
       setSummary(summaryRes.data.summary);
       setRawData(summaryRes.data.raw_data || []);
       setHistory(historyRes.data.history);
+      // Set current dataset ID to the latest (first in history)
+      if (historyRes.data.history && historyRes.data.history.length > 0) {
+        setCurrentDatasetId(historyRes.data.history[0].id);
+      }
     } catch (err) {
       if (err.response?.status === 404) {
         setSummary(null);
@@ -89,7 +94,11 @@ function Dashboard({ onLogout }) {
 
   const handleExportCSV = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/export/csv/`, {
+      const endpoint = currentDatasetId 
+        ? `${API_URL}/api/export/csv/${currentDatasetId}/`
+        : `${API_URL}/api/export/csv/`;
+      
+      const response = await axios.get(endpoint, {
         headers: getAuthHeaders(),
         responseType: 'blob',
       });
@@ -97,7 +106,8 @@ function Dashboard({ onLogout }) {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'dataset.csv');
+      const filename = summary?.name || 'dataset';
+      link.setAttribute('download', `${filename}.csv`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -108,7 +118,11 @@ function Dashboard({ onLogout }) {
 
   const handleExportPDF = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/report/pdf/`, {
+      const endpoint = currentDatasetId 
+        ? `${API_URL}/api/report/pdf/${currentDatasetId}/`
+        : `${API_URL}/api/report/pdf/`;
+      
+      const response = await axios.get(endpoint, {
         headers: getAuthHeaders(),
         responseType: 'blob',
       });
@@ -116,12 +130,100 @@ function Dashboard({ onLogout }) {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'report.pdf');
+      const filename = summary?.name || 'report';
+      link.setAttribute('download', `${filename}_report.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
     } catch (err) {
       setError('PDF generation failed');
+    }
+  };
+
+  const handleExportCSVById = async (datasetId, datasetName) => {
+    try {
+      const response = await axios.get(`${API_URL}/api/export/csv/${datasetId}/`, {
+        headers: getAuthHeaders(),
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${datasetName}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      setError('Export failed');
+    }
+  };
+
+  const handleExportPDFById = async (datasetId, datasetName) => {
+    try {
+      const response = await axios.get(`${API_URL}/api/report/pdf/${datasetId}/`, {
+        headers: getAuthHeaders(),
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${datasetName}_report.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      setError('PDF generation failed');
+    }
+  };
+
+  const handleHistoryClick = async (dataset) => {
+    try {
+      // Fetch the specific dataset's raw data
+      const response = await axios.get(`${API_URL}/api/export/csv/${dataset.id}/`, {
+        headers: getAuthHeaders(),
+        responseType: 'text',
+      });
+      
+      // Parse CSV to get raw data
+      const lines = response.data.split('\n');
+      const headers = lines[0].split(',');
+      const parsedData = lines.slice(1).filter(line => line.trim()).map(line => {
+        const values = line.split(',');
+        return headers.reduce((obj, header, index) => {
+          obj[header.trim()] = values[index]?.trim();
+          return obj;
+        }, {});
+      });
+
+      // Update summary and raw data with the selected dataset
+      setSummary({
+        total_equipment_count: dataset.total_equipment_count,
+        avg_flowrate: dataset.avg_flowrate,
+        avg_pressure: dataset.avg_pressure,
+        avg_temperature: dataset.avg_temperature,
+        equipment_type_distribution: dataset.equipment_type_distribution,
+        name: dataset.name,
+        id: dataset.id,
+        upload_timestamp: dataset.upload_timestamp,
+      });
+      setRawData(parsedData);
+      setCurrentDatasetId(dataset.id);
+    } catch (err) {
+      // If CSV fetch fails, just update summary without raw data
+      setSummary({
+        total_equipment_count: dataset.total_equipment_count,
+        avg_flowrate: dataset.avg_flowrate,
+        avg_pressure: dataset.avg_pressure,
+        avg_temperature: dataset.avg_temperature,
+        equipment_type_distribution: dataset.equipment_type_distribution,
+        name: dataset.name,
+        id: dataset.id,
+        upload_timestamp: dataset.upload_timestamp,
+      });
+      setRawData([]);
+      setCurrentDatasetId(dataset.id);
     }
   };
 
@@ -195,6 +297,18 @@ function Dashboard({ onLogout }) {
 
         {summary ? (
           <>
+            {/* Dataset Context Banner */}
+            <section className="dataset-context">
+              <div className="dataset-context-icon">📊</div>
+              <div className="dataset-context-info">
+                <div className="dataset-context-name">Dataset: {summary.name || 'Unknown'}</div>
+                <div className="dataset-context-timestamp">
+                  Uploaded: {summary.upload_timestamp || new Date().toLocaleString()}
+                </div>
+              </div>
+              <div className="active-badge">● ACTIVE</div>
+            </section>
+
             <section className="summary-cards">
               <div className="stat-card" data-testid="total-count-card">
                 <div className="stat-label">Total Equipment</div>
@@ -245,7 +359,7 @@ function Dashboard({ onLogout }) {
               </div>
 
               <div className="chart-card">
-                <h3>Parameter Comparison (First 20)</h3>
+                <h3>Parameter Comparison </h3>
                 <Bar
                   data={{
                     labels: parameterData.map((d) => d.name),
@@ -278,6 +392,139 @@ function Dashboard({ onLogout }) {
                     },
                   }}
                 />
+              </div>
+
+              <div className="chart-card">
+                <h3>Temperature vs Pressure Analysis</h3>
+                <Scatter
+                  data={{
+                    datasets: [
+                      {
+                        label: 'Operating Point',
+                        data: rawData.map(item => ({
+                          x: parseFloat(item.Temperature),
+                          y: parseFloat(item.Pressure)
+                        })),
+                        backgroundColor: 'rgba(79, 195, 247, 0.7)',
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    plugins: {
+                      legend: { position: 'top', labels: { color: '#E0E0E0' } },
+                      tooltip: {
+                        callbacks: {
+                          label: function(context) {
+                            return `(Temp: ${context.parsed.x}, Pressure: ${context.parsed.y})`;
+                          }
+                        }
+                      }
+                    },
+                    scales: {
+                      x: { 
+                        type: 'linear', 
+                        position: 'bottom',
+                        title: { display: true, text: 'Temperature (°F)', color: '#B0BEC5' },
+                        ticks: { color: '#B0BEC5' } 
+                      },
+                      y: { 
+                        title: { display: true, text: 'Pressure (psi)', color: '#B0BEC5' },
+                        ticks: { color: '#B0BEC5' } 
+                      },
+                    },
+                  }}
+                />
+              </div>
+
+              <div className="chart-card">
+                <h3>Flowrate Performance Trend (First 20)</h3>
+                <Line
+                  data={{
+                    labels: parameterData.map((d) => d.name),
+                    datasets: [
+                      {
+                        label: 'Flowrate',
+                        data: parameterData.map((d) => d.flowrate),
+                        fill: true,
+                        backgroundColor: 'rgba(79, 195, 247, 0.3)',
+                        borderColor: 'rgba(79, 195, 247, 1)',
+                        tension: 0.1
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    plugins: {
+                      legend: { display: false },
+                    },
+                    scales: {
+                      x: { ticks: { color: '#B0BEC5', autoSkip: false, maxRotation: 45, minRotation: 45 } },
+                      y: { 
+                        title: { display: true, text: 'Flowrate (L/min)', color: '#B0BEC5' },
+                        ticks: { color: '#B0BEC5' } 
+                      },
+                    },
+                  }}
+                />
+              </div>
+            </section>
+
+            <section className="history-section">
+              <h3>Upload History</h3>
+              <div className="history-cards">
+                {history.map((item) => (
+                  <div 
+                    className={`history-card ${item.id === currentDatasetId ? 'active' : ''}`} 
+                    key={item.id}
+                  >
+                    <div className="history-header">
+                      <h4>{item.name} (ID: {item.id})</h4>
+                      <div className="history-date">Uploaded on: {new Date(item.upload_timestamp).toLocaleString()}</div>
+                    </div>
+                    <div className="history-stats">
+                      <div className="history-stat">
+                        <span className="stat-label">Total Equipment</span>
+                        <span className="stat-value">{item.total_equipment_count}</span>
+                      </div>
+                      <div className="history-stat">
+                        <span className="stat-label">Avg Flowrate</span>
+                        <span className="stat-value">{item.avg_flowrate} L/min</span>
+                      </div>
+                      <div className="history-stat">
+                        <span className="stat-label">Avg Pressure</span>
+                        <span className="stat-value">{item.avg_pressure} psi</span>
+                      </div>
+                      <div className="history-stat">
+                        <span className="stat-label">Avg Temperature</span>
+                        <span className="stat-value">{item.avg_temperature} °F</span>
+                      </div>
+                    </div>
+                    <div className="history-actions">
+                      <button 
+                        className="btn-small btn-primary" 
+                        onClick={() => handleHistoryClick(item)}
+                        data-testid={`analyze-${item.id}`}
+                      >
+                        📊 View Analysis
+                      </button>
+                      <button 
+                        className="btn-small btn-secondary" 
+                        onClick={() => handleExportCSVById(item.id, item.name)}
+                        data-testid={`export-csv-${item.id}`}
+                      >
+                        📄 CSV
+                      </button>
+                      <button 
+                        className="btn-small btn-secondary" 
+                        onClick={() => handleExportPDFById(item.id, item.name)}
+                        data-testid={`export-pdf-${item.id}`}
+                      >
+                        📑 PDF
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </section>
 
