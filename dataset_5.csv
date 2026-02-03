@@ -1,0 +1,148 @@
+Equipment Name,Equipment Type,Flowrate,Pressure,Temperature
+Reactor-A1,Reactor,150.5,45.2,120.3
+Pump-B1,Pump,200.0,60.5,85.7
+Heat Exchanger-C1,Heat Exchanger,180.3,55.0,95.2
+Distillation Column-D1,Distillation Column,220.8,70.1,110.5
+Compressor-E1,Compressor,250.0,80.0,130.5
+Mixer-F1,Mixer,160.0,48.5,100.0
+Separator-G1,Separator,190.0,65.5,105.8
+Reactor-A2,Reactor,145.2,43.8,118.9
+Pump-B2,Pump,195.5,58.3,83.4
+Heat Exchanger-C2,Heat Exchanger,175.6,52.7,92.8
+Distillation Column-D2,Distillation Column,215.0,68.8,108.2
+Compressor-E2,Compressor,245.5,78.3,128.9
+Mixer-F2,Mixer,165.3,49.8,102.3
+Separator-G2,Separator,185.5,63.9,104.2
+Reactor-A3,Reactor,155.3,46.9,122.1
+Pump-B3,Pump,205.2,62.0,87.3
+Heat Exchanger-C3,Heat Exchanger,182.4,54.2,94.5
+Distillation Column-D3,Distillation Column,218.0,69.5,109.8
+Compressor-E3,Compressor,252.0,81.5,131.2
+Mixer-F3,Mixer,162.5,49.0,101.2
+Separator-G3,Separator,192.5,66.2,106.5
+Reactor-A4,Reactor,148.8,44.5,119.7
+Pump-B4,Pump,198.0,59.2,84.6
+Heat Exchanger-C4,Heat Exchanger,178.9,53.5,93.7
+Distillation Column-D4,Distillation Column,222.5,71.0,111.2
+Compressor-E4,Compressor,248.0,79.5,129.5
+Mixer-F4,Mixer,164.0,50.2,103.0
+Separator-G4,Separator,188.0,64.5,105.0
+Reactor-A5,Reactor,152.1,45.5,120.5
+Pump-B5,Pump,201.2,60.8,86.1
+Heat Exchanger-C5,Heat Exchanger,181.5,55.3,95.5
+Distillation Column-D5,Distillation Column,221.4,70.5,110.9
+Compressor-E5,Compressor,251.3,80.5,130.8
+Mixer-F5,Mixer,161.4,48.9,100.5
+Separator-G5,Separator,191.2,65.8,106.1
+Reactor-A6,Reactor,146.5,44.1,119.2
+Pump-B6,Pump,196.8,58.6,83.8
+Heat Exchanger-C6,Heat Exchanger,176.5,52.9,93.1
+Distillation Column-D6,Distillation Column,216.4,69.1,108.5
+Compressor-E6,Compressor,246.8,78.6,129.2
+Mixer-F6,Mixer,166.5,50.1,102.6
+Separator-G6,Separator,186.4,64.2,104.5
+Reactor-A7,Reactor,156.4,47.2,122.5
+Pump-B7,Pump,206.5,62.3,87.6
+Heat Exchanger-C7,Heat Exchanger,183.6,54.5,94.8
+Distillation Column-D7,Distillation Column,219.4,69.8,110.1
+Compressor-E7,Compressor,253.2,81.8,131.5
+Mixer-F7,Mixer,163.7,49.3,101.5
+Separator-G7,Separator,193.8,66.5,106.8
+Reactor-A8,Reactor,150.1,44.8,120.0
+Pump-B8,Pump,199.3,59.5,84.9
+Heat Exchanger-C8,Heat Exchanger,180.2,53.8,94.0
+Distillation Column-D8,Distillation Column,223.8,71.3,111.5
+Compressor-E8,Compressor,249.2,79.8,129.8
+Mixer-F8,Mixer,165.2,50.5,103.3
+Separator-G8,Separator,189.3,64.8,105.3
+Reactor-A9,Reactor,151.0,45.3,120.2
+Pump-B9,Pump,200.5,60.1,85.5
+Heat Exchanger-C9,Heat Exchanger,180.8,54.8,95.0
+Distillation Column-D9,Distillation Column,220.1,69.9,110.3
+Compressor-E9,Compressor,250.4,80.1,130.3
+Mixer-F9,Mixer,160.5,48.2,100.2
+Separator-G9,Separator,190.5,65.1,105.5
+Reactor-A10,Reactor,145.8,43.5,118.5
+Pump-B10,Pump,195.9,58.0,83.1
+Heat Exchanger-C10,Heat Exchanger,175.9,52.4,92.5
+Distillation Column-D10,Distillation Column,215.5,68.5,107.9
+Compressor-E10,Compressor,245.9,78.0,128.5
+Mixer-F10,Mixer,165.9,49.5,102.0
+Separator-G10,Separator,185.9,63.5,103.9
+Reactor-A11,Reactor,155.9,46.5,121.9
+Pump-B11,Pump,205.9,61.5,86.9
+Heat Exchanger-C11,Heat Exchanger,182.9,53.9,94.2
+Distillation Column-D11,Distillation Column,218.5,69.2,109.5
+Compressor-E11,Compressor,252.5,81.2,130.9
+Mixer-F11,Mixer,162.9,48.7,100.9
+Separator-G11,Separator,192.9,65.9,106.2
+Reactor-A12,Reactor,149.5,44.2,119.5
+Pump-B12,Pump,198.5,58.9,84.3
+Heat Exchanger-C12,Heat Exchanger,179.5,53.2,93.4
+Distillation Column-D12,Distillation Column,222.9,70.8,110.9
+Compressor-E12,Compressor,248.5,79.2,129.2
+Mixer-F12,Mixer,164.5,49.9,102.7
+Separator-G12,Separator,188.5,64.2,104.7
+Reactor-A13,Reactor,152.9,45.8,120.9
+Pump-B13,Pump,201.9,61.1,86.5
+Heat Exchanger-C13,Heat Exchanger,181.9,55.6,95.9
+Distillation Column-D13,Distillation Column,221.9,70.8,111.2
+Compressor-E13,Compressor,251.9,80.8,131.2
+Mixer-F13,Mixer,161.9,49.2,100.9
+Separator-G13,Separator,191.9,66.2,106.5
+Reactor-A14,Reactor,147.1,44.4,119.5
+Pump-B14,Pump,197.1,58.9,84.1
+Heat Exchanger-C14,Heat Exchanger,177.1,53.2,93.4
+Distillation Column-D14,Distillation Column,217.1,69.4,108.8
+Compressor-E14,Compressor,247.1,78.9,129.5
+Mixer-F14,Mixer,167.1,50.4,102.9
+Separator-G14,Separator,187.1,64.5,104.8
+Reactor-A15,Reactor,157.1,47.5,122.9
+Pump-B15,Pump,207.1,62.6,87.9
+Heat Exchanger-C15,Heat Exchanger,184.1,54.8,95.1
+Distillation Column-D15,Distillation Column,220.1,70.1,110.4
+Compressor-E15,Compressor,254.1,82.1,131.8
+Mixer-F15,Mixer,164.1,49.6,101.8
+Separator-G15,Separator,194.1,66.8,107.1
+Reactor-A16,Reactor,150.9,45.1,120.3
+Pump-B16,Pump,200.1,59.8,85.2
+Heat Exchanger-C16,Heat Exchanger,180.9,54.1,94.3
+Distillation Column-D16,Distillation Column,224.9,71.6,111.8
+Compressor-E16,Compressor,249.9,80.1,130.1
+Mixer-F16,Mixer,165.9,50.8,103.6
+Separator-G16,Separator,190.1,65.1,105.6
+Reactor-A17,Reactor,151.5,45.5,120.7
+Pump-B17,Pump,201.2,60.5,85.9
+Heat Exchanger-C17,Heat Exchanger,181.5,55.2,95.4
+Distillation Column-D17,Distillation Column,220.8,70.2,110.6
+Compressor-E17,Compressor,251.1,80.4,130.6
+Mixer-F17,Mixer,161.1,48.5,100.5
+Separator-G17,Separator,191.1,65.5,105.9
+Reactor-A18,Reactor,146.2,43.8,118.8
+Pump-B18,Pump,196.2,58.3,83.4
+Heat Exchanger-C18,Heat Exchanger,176.2,52.7,92.8
+Distillation Column-D18,Distillation Column,216.2,68.8,108.2
+Compressor-E18,Compressor,246.2,78.3,128.8
+Mixer-F18,Mixer,166.2,49.8,102.3
+Separator-G18,Separator,186.2,63.8,104.2
+Reactor-A19,Reactor,156.2,46.8,122.2
+Pump-B19,Pump,206.2,61.8,87.2
+Heat Exchanger-C19,Heat Exchanger,183.2,54.2,94.5
+Distillation Column-D19,Distillation Column,219.2,69.5,109.8
+Compressor-E19,Compressor,252.2,81.5,131.2
+Mixer-F19,Mixer,163.2,49.0,101.2
+Separator-G19,Separator,193.2,66.2,106.5
+Reactor-A20,Reactor,149.8,44.5,119.8
+Pump-B20,Pump,198.8,59.2,84.6
+Heat Exchanger-C20,Heat Exchanger,179.8,53.5,93.7
+Distillation Column-D20,Distillation Column,223.2,71.1,111.2
+Compressor-E20,Compressor,248.8,79.5,129.5
+Mixer-F20,Mixer,164.8,50.2,103.0
+Separator-G20,Separator,188.8,64.5,105.0
+Reactor-A21,Reactor,153.2,46.1,121.2
+Pump-B21,Pump,202.2,61.4,86.8
+Heat Exchanger-C21,Heat Exchanger,182.2,55.9,96.2
+Distillation Column-D21,Distillation Column,222.2,71.1,111.5
+Compressor-E21,Compressor,252.2,81.1,131.5
+Mixer-F21,Mixer,162.2,49.5,101.2
+Separator-G21,Separator,192.2,66.5,106.8

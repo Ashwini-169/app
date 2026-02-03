@@ -4,7 +4,7 @@
  * REQUIRES REACT_APP_API_URL to be defined at build time
  */
 
-const API_BASE = process.env.REACT_APP_API_URL;
+const API_BASE = process.env.REACT_APP_API_URL||'http://localhost:8000';
 
 if (!API_BASE) {
   throw new Error(

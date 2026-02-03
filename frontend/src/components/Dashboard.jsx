@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend } from 'chart.js';
 import { Bar, Line, Pie, Scatter } from 'react-chartjs-2';
@@ -18,6 +18,8 @@ function Dashboard({ onLogout }) {
   const [loadingDataset, setLoadingDataset] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [currentHistoryPage, setCurrentHistoryPage] = useState(0);
+  const [exportingCSV, setExportingCSV] = useState(null);
+  const [exportingPDF, setExportingPDF] = useState(null);
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('access_token');
@@ -26,35 +28,147 @@ function Dashboard({ onLogout }) {
     };
   };
 
-  const fetchData = async () => {
+  const loadDatasetById = async (dataset) => {
     try {
-      const [summaryRes, historyRes] = await Promise.all([
-        axios.get(`${API_URL}/api/summary/latest/`, { headers: getAuthHeaders() }),
-        axios.get(`${API_URL}/api/history/`, { headers: getAuthHeaders() }),
-      ]);
+      // Method 1: Try new dedicated dataset endpoint (preferred)
+      try {
+        console.log(`Fetching /api/dataset/${dataset.id}/`);
+        const response = await axios.get(`${API_URL}/api/dataset/${dataset.id}/`, {
+          headers: getAuthHeaders(),
+          timeout: 8000,
+        });
 
-      setSummary(summaryRes.data.summary);
-      setRawData(summaryRes.data.raw_data || []);
+        if (response.data && response.data.summary && response.data.raw_data) {
+          console.log(`Dataset endpoint success: ${response.data.raw_data.length} rows loaded`);
+          setSummary(response.data.summary);
+          setRawData(response.data.raw_data);
+          setCurrentDatasetId(dataset.id);
+          setError('');
+          return;
+        } else {
+          console.warn('Dataset endpoint returned incomplete data');
+        }
+      } catch (datasetError) {
+        console.warn(`Dataset endpoint failed (${datasetError.response?.status || 'Network'}):`, datasetError.message);
+        
+        // Method 2: Fallback to CSV export and parse
+        try {
+          console.log(`Fetching /api/export/csv/${dataset.id}/ as fallback`);
+          const csvResponse = await axios.get(`${API_URL}/api/export/csv/${dataset.id}/`, {
+            headers: getAuthHeaders(),
+            responseType: 'text',
+            timeout: 8000,
+          });
+          
+          if (csvResponse.data && typeof csvResponse.data === 'string') {
+            const lines = csvResponse.data.split('\n').filter(line => line.trim());
+            if (lines.length > 1) {
+              const headers = lines[0].split(',').map(h => h.trim());
+              const parsedData = lines.slice(1).map(line => {
+                const values = line.split(',');
+                const row = {};
+                headers.forEach((header, index) => {
+                  row[header] = values[index]?.trim() || '';
+                });
+                return row;
+              });
+
+              console.log(`CSV fallback success: ${parsedData.length} rows parsed`);
+              setSummary({
+                total_equipment_count: dataset.total_equipment_count,
+                avg_flowrate: dataset.avg_flowrate,
+                avg_pressure: dataset.avg_pressure,
+                avg_temperature: dataset.avg_temperature,
+                equipment_type_distribution: dataset.equipment_type_distribution,
+                name: dataset.name,
+                id: dataset.id,
+                upload_timestamp: dataset.upload_timestamp,
+              });
+              setRawData(parsedData);
+              setCurrentDatasetId(dataset.id);
+              setError('');
+              return;
+            }
+          }
+        } catch (csvError) {
+          console.warn(`CSV fallback failed:`, csvError.message);
+        }
+      }
+      
+      // Last resort: Load summary only with available data
+      console.log(`Loading summary-only for dataset ${dataset.id}`);
+      setSummary({
+        total_equipment_count: dataset.total_equipment_count,
+        avg_flowrate: dataset.avg_flowrate,
+        avg_pressure: dataset.avg_pressure,
+        avg_temperature: dataset.avg_temperature,
+        equipment_type_distribution: dataset.equipment_type_distribution,
+        name: dataset.name,
+        id: dataset.id,
+        upload_timestamp: dataset.upload_timestamp,
+      });
+      setRawData([]);
+      setCurrentDatasetId(dataset.id);
+      setError('Loaded summary statistics only. Detailed data unavailable.');
+    } catch (err) {
+      console.error('Failed to load dataset:', err);
+      setError(`Failed to load dataset: ${err.message}`);
+    }
+  };
+
+  const fetchData = useCallback(async () => {
+    try {
+      // Always fetch history first
+      const historyRes = await axios.get(`${API_URL}/api/history/`, { headers: getAuthHeaders() });
       setHistory(historyRes.data.history);
-      // Set current dataset ID to the latest (first in history)
-      if (historyRes.data.history && historyRes.data.history.length > 0) {
-        setCurrentDatasetId(historyRes.data.history[0].id);
+      
+      // Try to get latest summary
+      try {
+        const summaryRes = await axios.get(`${API_URL}/api/summary/latest/`, { headers: getAuthHeaders() });
+        setSummary(summaryRes.data.summary);
+        setRawData(summaryRes.data.raw_data || []);
+        
+        // Set current dataset ID to the latest (first in history)
+        if (historyRes.data.history && historyRes.data.history.length > 0) {
+          setCurrentDatasetId(historyRes.data.history[0].id);
+        }
+      } catch (summaryErr) {
+        // If summary endpoint fails, automatically load the latest dataset
+        if (summaryErr.response?.status === 404 || summaryErr.response?.status === 500) {
+          console.log('Summary endpoint failed, loading latest dataset from history...');
+          
+          if (historyRes.data.history && historyRes.data.history.length > 0) {
+            const latestDataset = historyRes.data.history[0];
+            console.log('Auto-loading latest dataset:', latestDataset.name, 'ID:', latestDataset.id);
+            setError(`Loading latest dataset: ${latestDataset.name}...`);
+            
+            // Use the same dual-fallback logic as handleHistoryClick
+            await loadDatasetById(latestDataset);
+            setError(''); // Clear loading message after successful load
+          } else {
+            setSummary(null);
+            setRawData([]);
+            setError('No datasets available. Please upload a CSV file to begin.');
+          }
+        } else {
+          throw summaryErr; // Re-throw for other errors
+        }
       }
     } catch (err) {
-      if (err.response?.status === 404) {
-        setSummary(null);
-        setRawData([]);
-      } else if (err.response?.status === 401) {
+      console.error('fetchData error:', err);
+      if (err.response?.status === 401) {
         onLogout();
+      } else {
+        setError('Failed to load data. Please try refreshing the page.');
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, [onLogout]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleFileChange = (e) => {
     setSelectedFile(e.target.files[0]);
@@ -94,6 +208,7 @@ function Dashboard({ onLogout }) {
 
   const handleExportCSV = async () => {
     try {
+      // Try with current dataset ID first, fallback to general endpoint
       const endpoint = currentDatasetId 
         ? `${API_URL}/api/export/csv/${currentDatasetId}/`
         : `${API_URL}/api/export/csv/`;
@@ -101,23 +216,34 @@ function Dashboard({ onLogout }) {
       const response = await axios.get(endpoint, {
         headers: getAuthHeaders(),
         responseType: 'blob',
+        timeout: 15000,
       });
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      const filename = summary?.name || 'dataset';
+      const filename = summary?.name || `dataset_${currentDatasetId || 'latest'}`;
       link.setAttribute('download', `${filename}.csv`);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
     } catch (err) {
-      setError('Export failed');
+      console.error('CSV export error:', err);
+      if (err.response?.status === 404) {
+        setError('Dataset not found for export');
+      } else if (err.response?.status === 401) {
+        setError('Authentication failed. Please login again.');
+        onLogout();
+      } else {
+        setError(`CSV export failed: ${err.response?.data?.error || err.message}`);
+      }
     }
   };
 
   const handleExportPDF = async () => {
     try {
+      // Try with current dataset ID first, fallback to general endpoint
       const endpoint = currentDatasetId 
         ? `${API_URL}/api/report/pdf/${currentDatasetId}/`
         : `${API_URL}/api/report/pdf/`;
@@ -125,56 +251,140 @@ function Dashboard({ onLogout }) {
       const response = await axios.get(endpoint, {
         headers: getAuthHeaders(),
         responseType: 'blob',
+        timeout: 20000, // PDF generation might take longer
       });
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      const filename = summary?.name || 'report';
+      const filename = summary?.name || `dataset_${currentDatasetId || 'latest'}`;
       link.setAttribute('download', `${filename}_report.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
     } catch (err) {
-      setError('PDF generation failed');
+      console.error('PDF export error:', err);
+      if (err.response?.status === 404) {
+        setError('Dataset not found for PDF export');
+      } else if (err.response?.status === 401) {
+        setError('Authentication failed. Please login again.');
+        onLogout();
+      } else if (err.response?.status === 500) {
+        setError('PDF generation failed on server. Please try again.');
+      } else {
+        setError(`PDF export failed: ${err.response?.data?.error || err.message}`);
+      }
     }
   };
 
   const handleExportCSVById = async (datasetId, datasetName) => {
+    setExportingCSV(datasetId);
     try {
+      console.log(`Exporting CSV for dataset ${datasetId}...`);
       const response = await axios.get(`${API_URL}/api/export/csv/${datasetId}/`, {
         headers: getAuthHeaders(),
         responseType: 'blob',
+        timeout: 15000,
       });
+
+      // Check if response is valid
+      if (!response.data || response.data.size === 0) {
+        setError(`CSV export failed for "${datasetName}": Empty response from server`);
+        console.error('CSV export returned empty blob');
+        setExportingCSV(null);
+        return;
+      }
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `${datasetName}.csv`);
+      const timestamp = new Date().getTime();
+      link.setAttribute('download', `${datasetName}_${timestamp}.csv`);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      setError('');
+      console.log(`CSV exported successfully for dataset ${datasetId}`);
     } catch (err) {
-      setError('Export failed');
+      console.error('CSV export by ID error:', err);
+      let errorMsg = 'CSV export failed';
+      
+      if (err.response?.status === 404) {
+        errorMsg = `Dataset "${datasetName}" (ID: ${datasetId}) not found on server`;
+      } else if (err.response?.status === 401) {
+        errorMsg = 'Authentication failed. Please login again.';
+        setTimeout(() => onLogout(), 1000);
+      } else if (err.response?.status === 500) {
+        errorMsg = `Server error while exporting "${datasetName}". Please try again.`;
+      } else if (err.message === 'Network Error') {
+        errorMsg = `Network error: Cannot reach backend server. Check if ${API_URL} is accessible`;
+      } else if (err.code === 'ECONNABORTED') {
+        errorMsg = 'Export timeout: Server took too long to respond';
+      } else {
+        errorMsg = `Export failed for "${datasetName}": ${err.response?.data?.error || err.message}`;
+      }
+      
+      setError(errorMsg);
+    } finally {
+      setExportingCSV(null);
     }
   };
 
   const handleExportPDFById = async (datasetId, datasetName) => {
+    setExportingPDF(datasetId);
     try {
+      console.log(`Generating PDF report for dataset ${datasetId}...`);
       const response = await axios.get(`${API_URL}/api/report/pdf/${datasetId}/`, {
         headers: getAuthHeaders(),
         responseType: 'blob',
+        timeout: 30000, // PDF generation takes longer
       });
+
+      // Check if response is valid
+      if (!response.data || response.data.size === 0) {
+        setError(`PDF export failed for "${datasetName}": Empty response from server`);
+        console.error('PDF export returned empty blob');
+        setExportingPDF(null);
+        return;
+      }
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `${datasetName}_report.pdf`);
+      const timestamp = new Date().getTime();
+      link.setAttribute('download', `${datasetName}_report_${timestamp}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      setError('');
+      console.log(`PDF exported successfully for dataset ${datasetId}`);
     } catch (err) {
-      setError('PDF generation failed');
+      console.error('PDF export by ID error:', err);
+      let errorMsg = 'PDF export failed';
+      
+      if (err.response?.status === 404) {
+        errorMsg = `Dataset "${datasetName}" (ID: ${datasetId}) not found for PDF generation`;
+      } else if (err.response?.status === 401) {
+        errorMsg = 'Authentication failed. Please login again.';
+        setTimeout(() => onLogout(), 1000);
+      } else if (err.response?.status === 500) {
+        errorMsg = `PDF generation failed on server for "${datasetName}". Please try again.`;
+      } else if (err.message === 'Network Error') {
+        errorMsg = `Network error: Cannot reach backend server. Check if ${API_URL} is accessible`;
+      } else if (err.code === 'ECONNABORTED') {
+        errorMsg = 'PDF generation timeout: Server took too long to respond';
+      } else {
+        errorMsg = `PDF export failed for "${datasetName}": ${err.response?.data?.error || err.message}`;
+      }
+      
+      setError(errorMsg);
+    } finally {
+      setExportingPDF(null);
     }
   };
 
@@ -194,100 +404,37 @@ function Dashboard({ onLogout }) {
     const maxRetries = 3;
     const retryDelay = 1500;
     
+    console.log(`Loading dataset ${dataset.id}: ${dataset.name}`);
+    
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         // Check API health first
         const isHealthy = await checkApiHealth();
         if (!isHealthy) {
+          console.warn(`API health check failed (attempt ${attempt}/${maxRetries})`);
           setError(`API is not responding. Retrying... (${attempt}/${maxRetries})`);
           await new Promise(resolve => setTimeout(resolve, retryDelay));
           continue;
         }
         
-        // Try Method 1: New dedicated dataset endpoint (preferred)
-        try {
-          const response = await axios.get(`${API_URL}/api/dataset/${dataset.id}/`, {
-            headers: getAuthHeaders(),
-            timeout: 8000,
-          });
-
-          if (response.data && response.data.summary && response.data.raw_data) {
-            setSummary(response.data.summary);
-            setRawData(response.data.raw_data);
-            setCurrentDatasetId(dataset.id);
-            setError('');
-            setLoadingDataset(false);
-            return;
-          }
-        } catch (datasetError) {
-          console.warn('Dataset endpoint failed, trying CSV fallback...', datasetError.message);
-          
-          // Method 2: Fallback to CSV export and parse
-          try {
-            const csvResponse = await axios.get(`${API_URL}/api/export/csv/${dataset.id}/`, {
-              headers: getAuthHeaders(),
-              responseType: 'text',
-              timeout: 8000,
-            });
-            
-            if (csvResponse.data && typeof csvResponse.data === 'string') {
-              const lines = csvResponse.data.split('\n').filter(line => line.trim());
-              if (lines.length > 1) {
-                const headers = lines[0].split(',').map(h => h.trim());
-                const parsedData = lines.slice(1).map(line => {
-                  const values = line.split(',');
-                  const row = {};
-                  headers.forEach((header, index) => {
-                    row[header] = values[index]?.trim() || '';
-                  });
-                  return row;
-                });
-
-                setSummary({
-                  total_equipment_count: dataset.total_equipment_count,
-                  avg_flowrate: dataset.avg_flowrate,
-                  avg_pressure: dataset.avg_pressure,
-                  avg_temperature: dataset.avg_temperature,
-                  equipment_type_distribution: dataset.equipment_type_distribution,
-                  name: dataset.name,
-                  id: dataset.id,
-                  upload_timestamp: dataset.upload_timestamp,
-                });
-                setRawData(parsedData);
-                setCurrentDatasetId(dataset.id);
-                setError('');
-                setLoadingDataset(false);
-                return;
-              }
-            }
-          } catch (csvError) {
-            console.warn('CSV fallback failed:', csvError.message);
-          }
-        }
+        console.log(`Attempting to load dataset ${dataset.id} (attempt ${attempt}/${maxRetries})`);
+        
+        // Use the shared loadDatasetById function
+        await loadDatasetById(dataset);
+        setLoadingDataset(false);
+        console.log(`Successfully loaded dataset ${dataset.id}`);
+        return;
         
       } catch (err) {
         console.error(`Attempt ${attempt} failed:`, err.message);
         
         if (attempt === maxRetries) {
-          // Last resort: Load summary only with available data
-          setSummary({
-            total_equipment_count: dataset.total_equipment_count,
-            avg_flowrate: dataset.avg_flowrate,
-            avg_pressure: dataset.avg_pressure,
-            avg_temperature: dataset.avg_temperature,
-            equipment_type_distribution: dataset.equipment_type_distribution,
-            name: dataset.name,
-            id: dataset.id,
-            upload_timestamp: dataset.upload_timestamp,
-          });
-          setRawData([]);
-          setCurrentDatasetId(dataset.id);
-          setError('Unable to load full dataset. Charts and tables may be limited. Summary statistics are available.');
+          setError(`Failed to load dataset after ${maxRetries} attempts. Please check your connection and try again.`);
           setLoadingDataset(false);
           return;
         }
         
-        setError(`Loading... (${attempt}/${maxRetries})`);
+        setError(`Loading dataset... (${attempt}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, retryDelay * attempt));
       }
     }
@@ -389,7 +536,34 @@ function Dashboard({ onLogout }) {
       <div className="dashboard-content">
         <section className="upload-section">
           <h2>Upload CSV Data</h2>
-          {error && <div className="error-message">{error}</div>}
+          {error && (
+            <div className="error-message" style={{ 
+              backgroundColor: '#ff5252', 
+              color: 'white', 
+              padding: '15px', 
+              borderRadius: '4px',
+              marginBottom: '15px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span>{error}</span>
+              <button 
+                onClick={() => setError('')}
+                style={{
+                  background: 'rgba(255,255,255,0.3)',
+                  border: 'none',
+                  color: 'white',
+                  cursor: 'pointer',
+                  padding: '5px 10px',
+                  borderRadius: '3px',
+                  fontSize: '14px'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
           <div className="upload-form">
             <div className="file-input-wrapper">
               <input
@@ -652,23 +826,29 @@ function Dashboard({ onLogout }) {
                       <button 
                         className="btn-small btn-primary" 
                         onClick={() => handleHistoryClick(item)}
+                        disabled={loadingDataset}
                         data-testid={`analyze-${item.id}`}
+                        style={{ opacity: loadingDataset ? 0.6 : 1, cursor: loadingDataset ? 'not-allowed' : 'pointer' }}
                       >
-                        📊 View Analysis
+                        {loadingDataset ? '⏳ Loading...' : '📊 View Analysis'}
                       </button>
                       <button 
                         className="btn-small btn-secondary" 
                         onClick={() => handleExportCSVById(item.id, item.name)}
+                        disabled={exportingCSV === item.id}
                         data-testid={`export-csv-${item.id}`}
+                        style={{ opacity: exportingCSV === item.id ? 0.6 : 1, cursor: exportingCSV === item.id ? 'not-allowed' : 'pointer' }}
                       >
-                        📄 CSV
+                        {exportingCSV === item.id ? '⏳ Exporting...' : '📄 CSV'}
                       </button>
                       <button 
                         className="btn-small btn-secondary" 
                         onClick={() => handleExportPDFById(item.id, item.name)}
+                        disabled={exportingPDF === item.id}
                         data-testid={`export-pdf-${item.id}`}
+                        style={{ opacity: exportingPDF === item.id ? 0.6 : 1, cursor: exportingPDF === item.id ? 'not-allowed' : 'pointer' }}
                       >
-                        📑 PDF
+                        {exportingPDF === item.id ? '⏳ Generating...' : '📑 PDF'}
                       </button>
                     </div>
                   </div>
