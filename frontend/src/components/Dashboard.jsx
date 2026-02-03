@@ -5,9 +5,8 @@ import { Bar, Line, Pie, Scatter } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend);
 
-const API_URL = process.env.NODE_ENV === 'development' 
-  ? 'http://localhost:8002' 
-  : `${window.location.protocol}//${window.location.hostname}:8002`;
+// Use REACT_APP_API_URL for production (Railway sets this), fallback to localhost for dev
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8002';
 
 function Dashboard({ onLogout }) {
   const [summary, setSummary] = useState(null);
