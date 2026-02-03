@@ -10,6 +10,18 @@ Django REST Framework backend for Chemical Equipment Parameter Visualizer with G
 # Backend running at: https://chemical-backend-production-dd2c.up.railway.app
 ```
 
+### Frontend (Production)
+```bash
+# React frontend running at:
+# https://chemical-frontend-production-974b.up.railway.app/
+```
+
+### Test User Credentials
+```
+Username: testuser
+Password: testpass123
+```
+
 ### Local Development
 ```bash
 cd django_backend
@@ -428,6 +440,14 @@ Before production deploy:
 - Check [API_DOCUMENTATION.md](../API_DOCUMENTATION.md) for detailed API specs
 - See main [README.md](../README.md) for system overview
 - Django docs: https://docs.djangoproject.com/
+
+---
+
+**Frontend Production URL:** https://chemical-frontend-production-974b.up.railway.app/
+
+**Test User:**
+- Username: testuser
+- Password: testpass123
 
 ---
 
