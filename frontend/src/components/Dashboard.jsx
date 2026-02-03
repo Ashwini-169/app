@@ -178,58 +178,96 @@ function Dashboard({ onLogout }) {
     }
   };
 
+  const checkApiHealth = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/health/`, { timeout: 5000 });
+      return response.status === 200;
+    } catch (err) {
+      return false;
+    }
+  };
+
   const handleHistoryClick = async (dataset) => {
     setLoadingDataset(true);
     setError('');
     
-    try {
-      // Fetch the specific dataset's raw data
-      const response = await axios.get(`${API_URL}/api/export/csv/${dataset.id}/`, {
-        headers: getAuthHeaders(),
-        responseType: 'text',
-      });
-      
-      // Parse CSV to get raw data
-      const lines = response.data.split('\n');
-      const headers = lines[0].split(',');
-      const parsedData = lines.slice(1).filter(line => line.trim()).map(line => {
-        const values = line.split(',');
-        return headers.reduce((obj, header, index) => {
-          obj[header.trim()] = values[index]?.trim();
-          return obj;
-        }, {});
-      });
+    const maxRetries = 5;
+    const retryDelay = 2000; // 2 seconds between retries
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Check API health before attempting
+        const isHealthy = await checkApiHealth();
+        if (!isHealthy && attempt > 1) {
+          setError(`API is not responding. Retrying... (${attempt}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          continue;
+        }
+        
+        // Fetch the specific dataset's raw data
+        const response = await axios.get(`${API_URL}/api/export/csv/${dataset.id}/`, {
+          headers: getAuthHeaders(),
+          responseType: 'text',
+          timeout: 10000, // 10 second timeout
+        });
+        
+        // Parse CSV to get raw data
+        const lines = response.data.split('\n');
+        const headers = lines[0].split(',');
+        const parsedData = lines.slice(1).filter(line => line.trim()).map(line => {
+          const values = line.split(',');
+          return headers.reduce((obj, header, index) => {
+            obj[header.trim()] = values[index]?.trim();
+            return obj;
+          }, {});
+        });
 
-      // Update summary and raw data with the selected dataset
-      setSummary({
-        total_equipment_count: dataset.total_equipment_count,
-        avg_flowrate: dataset.avg_flowrate,
-        avg_pressure: dataset.avg_pressure,
-        avg_temperature: dataset.avg_temperature,
-        equipment_type_distribution: dataset.equipment_type_distribution,
-        name: dataset.name,
-        id: dataset.id,
-        upload_timestamp: dataset.upload_timestamp,
-      });
-      setRawData(parsedData);
-      setCurrentDatasetId(dataset.id);
-    } catch (err) {
-      // If CSV fetch fails, just update summary without raw data
-      setSummary({
-        total_equipment_count: dataset.total_equipment_count,
-        avg_flowrate: dataset.avg_flowrate,
-        avg_pressure: dataset.avg_pressure,
-        avg_temperature: dataset.avg_temperature,
-        equipment_type_distribution: dataset.equipment_type_distribution,
-        name: dataset.name,
-        id: dataset.id,
-        upload_timestamp: dataset.upload_timestamp,
-      });
-      setRawData([]);
-      setCurrentDatasetId(dataset.id);
-      setError('Failed to load full dataset. Showing summary only.');
-    } finally {
-      setLoadingDataset(false);
+        // Update summary and raw data with the selected dataset
+        setSummary({
+          total_equipment_count: dataset.total_equipment_count,
+          avg_flowrate: dataset.avg_flowrate,
+          avg_pressure: dataset.avg_pressure,
+          avg_temperature: dataset.avg_temperature,
+          equipment_type_distribution: dataset.equipment_type_distribution,
+          name: dataset.name,
+          id: dataset.id,
+          upload_timestamp: dataset.upload_timestamp,
+        });
+        setRawData(parsedData);
+        setCurrentDatasetId(dataset.id);
+        setError(''); // Clear any previous errors
+        setLoadingDataset(false);
+        return; // Success - exit the function
+        
+      } catch (err) {
+        console.error(`Attempt ${attempt} failed:`, err.message);
+        
+        // If this was the last attempt, show error and load summary only
+        if (attempt === maxRetries) {
+          setSummary({
+            total_equipment_count: dataset.total_equipment_count,
+            avg_flowrate: dataset.avg_flowrate,
+            avg_pressure: dataset.avg_pressure,
+            avg_temperature: dataset.avg_temperature,
+            equipment_type_distribution: dataset.equipment_type_distribution,
+            name: dataset.name,
+            id: dataset.id,
+            upload_timestamp: dataset.upload_timestamp,
+          });
+          setRawData([]);
+          setCurrentDatasetId(dataset.id);
+          setError('Failed to load full dataset after multiple attempts. Showing summary only.');
+          setLoadingDataset(false);
+          return;
+        }
+        
+        // Show retry message
+        setError(`Loading failed. Retrying... (${attempt}/${maxRetries})`);
+        
+        // Wait before retrying with exponential backoff
+        const delay = retryDelay * attempt;
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
   };
 
