@@ -22,8 +22,11 @@ RUN mkdir -p uploads
 RUN python manage.py collectstatic --noinput || true
 
 # Expose port
-EXPOSE 8002
+EXPOSE 8000
+
+# Set default PORT if not provided
+ENV PORT=8000
 
 # Run migrations and start server
 CMD python manage.py migrate && \
-    python manage.py runserver 0.0.0.0:8002
+    python manage.py runserver 0.0.0.0:$PORT

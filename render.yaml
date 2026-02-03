@@ -10,8 +10,8 @@ services:
       - key: ALLOWED_HOSTS
         value: "*"
       - key: PORT
-        value: 8002
-    healthCheckPath: /api/history/
+        value: 8000
+    healthCheckPath: /api/health/
     
   - type: web
     name: chemical-frontend

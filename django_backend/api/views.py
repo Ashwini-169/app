@@ -25,6 +25,12 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 UPLOADS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def health_check(request):
+    """Public health check endpoint for deployment platforms"""
+    return Response({'status': 'healthy', 'service': 'chemical-backend'}, status=status.HTTP_200_OK)
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def upload_csv(request):
