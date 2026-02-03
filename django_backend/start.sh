@@ -1,7 +1,9 @@
-#!/bin/bash
+#!/bin/sh
 
 # Exit on error
 set -e
+
+echo "Starting server on PORT=$PORT"
 
 echo "Running database migrations..."
 python manage.py migrate --noinput
