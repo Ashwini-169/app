@@ -18,6 +18,7 @@ import traceback
 
 # Import existing chart module (avoid duplication)
 from charts.plots import create_pie_chart, create_bar_chart, create_scatter_plot, create_flowrate_trend
+from ui.data_table import DataTableDialog
 
 
 # Worker threads for async operations
@@ -183,6 +184,11 @@ class Dashboard(QMainWindow):
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(12)
         
+        self.btn_view_data = QPushButton("📋 View Raw Data")
+        self.btn_view_data.setObjectName("btnSecondary")
+        self.btn_view_data.setEnabled(False)
+        self.btn_view_data.clicked.connect(self.handle_view_raw_data)
+        
         self.btn_export_csv = QPushButton("Export CSV")
         self.btn_export_csv.setObjectName("btnSecondary")
         self.btn_export_csv.setEnabled(False)
@@ -197,6 +203,7 @@ class Dashboard(QMainWindow):
         btn_logout.setObjectName("btnLogout")
         btn_logout.clicked.connect(self.handle_logout)
         
+        right_layout.addWidget(self.btn_view_data)
         right_layout.addWidget(self.btn_export_csv)
         right_layout.addWidget(self.btn_export_pdf)
         right_layout.addWidget(btn_logout)
@@ -368,11 +375,11 @@ class Dashboard(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(16)
         
-        # Create 4 stat cards
+        # Create 4 stat cards with units
         self.card_total = self.create_stat_card("Total Equipment", "0")
-        self.card_flowrate = self.create_stat_card("Avg Flowrate", "0.00")
-        self.card_pressure = self.create_stat_card("Avg Pressure", "0.00")
-        self.card_temperature = self.create_stat_card("Avg Temperature", "0.00")
+        self.card_flowrate = self.create_stat_card("Avg Flowrate (L/min)", "0.00")
+        self.card_pressure = self.create_stat_card("Avg Pressure (psi)", "0.00")
+        self.card_temperature = self.create_stat_card("Avg Temperature (°F)", "0.00")
         
         layout.addWidget(self.card_total, 0, 0)
         layout.addWidget(self.card_flowrate, 0, 1)
@@ -628,9 +635,10 @@ class Dashboard(QMainWindow):
             # Fallback: update with summary only (like React error handler)
             self.update_summary_display({'summary': summary_data, 'raw_data': []})
         
-        # Enable export buttons
+        # Enable export and view data buttons
         self.btn_export_csv.setEnabled(True)
         self.btn_export_pdf.setEnabled(True)
+        self.btn_view_data.setEnabled(True)
         
         # Update dataset context banner
         self.update_dataset_context(dataset)
@@ -826,6 +834,45 @@ class Dashboard(QMainWindow):
             return
         
         self.export_dataset(self.current_dataset_id, "pdf")
+    
+    def handle_view_raw_data(self):
+        """Open raw data table viewer in separate window"""
+        if not self.current_dataset_id:
+            return
+        
+        # Get current dataset info
+        dataset = None
+        for item in self.history_data:
+            if item.get('id') == self.current_dataset_id:
+                dataset = item
+                break
+        
+        if not dataset:
+            QMessageBox.warning(self, "Error", "Dataset not found")
+            return
+        
+        # Fetch raw data
+        try:
+            result = self.api_client.export_csv(self.current_dataset_id)
+            if result.get('success') and result.get('data'):
+                raw_data = self._parse_csv_bytes(result.get('data'))
+                
+                if not raw_data:
+                    QMessageBox.warning(self, "No Data", "No raw data available for this dataset")
+                    return
+                
+                # Open table dialog
+                dialog = DataTableDialog(
+                    dataset_name=dataset.get('name', 'Unknown'),
+                    dataset_id=self.current_dataset_id,
+                    raw_data=raw_data,
+                    parent=self
+                )
+                dialog.show()
+            else:
+                QMessageBox.warning(self, "Error", "Failed to fetch raw data")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to load data:\n{str(e)}")
     
     def export_dataset(self, dataset_id, export_type):
         """Export dataset in background thread"""
