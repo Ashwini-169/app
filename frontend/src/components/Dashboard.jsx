@@ -2,11 +2,9 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend } from 'chart.js';
 import { Bar, Line, Pie, Scatter } from 'react-chartjs-2';
+import API_URL from '../api';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend);
-
-// Use REACT_APP_API_URL for production (Railway sets this), fallback to localhost for dev
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8002';
 
 function Dashboard({ onLogout }) {
   const [summary, setSummary] = useState(null);

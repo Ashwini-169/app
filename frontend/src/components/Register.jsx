@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-
-// Use REACT_APP_API_URL for production (Railway sets this), fallback to localhost for dev
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8002';
+import API_URL from '../api';
 
 function Register({ onRegister }) {
   const [username, setUsername] = useState('');

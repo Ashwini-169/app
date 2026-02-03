@@ -2,10 +2,6 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Accept backend URL as build argument
-ARG REACT_APP_API_URL=https://chemical-backend-production-dd2c.up.railway.app
-ENV REACT_APP_API_URL=$REACT_APP_API_URL
-
 # Copy package files
 COPY package*.json ./
 
@@ -15,7 +11,7 @@ RUN npm ci
 # Copy application code
 COPY . .
 
-# Build the React app with backend URL
+# Build the React app
 RUN npm run build
 
 # Install serve to run the production build
