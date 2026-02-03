@@ -17,8 +17,8 @@ RUN npm run build
 # Install serve to run the production build
 RUN npm install -g serve
 
-# Expose port
-EXPOSE 3000
+# Railway provides PORT automatically
+ENV PORT=3000
 
-# Serve the build folder
-CMD ["serve", "-s", "build", "-l", "3000"]
+# Serve the build folder on Railway's PORT
+CMD serve -s build -l $PORT
