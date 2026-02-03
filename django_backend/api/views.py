@@ -138,6 +138,26 @@ def get_history(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def get_dataset_detail(request, dataset_id):
+    """Get specific dataset with raw data"""
+    try:
+        dataset = Dataset.objects.get(id=dataset_id)
+        
+        # Read the CSV file to get raw data
+        df = pd.read_csv(dataset.file_path)
+        
+        serializer = DatasetSummarySerializer(dataset)
+        return Response({
+            'summary': serializer.data,
+            'raw_data': df.to_dict('records')
+        }, status=status.HTTP_200_OK)
+    except Dataset.DoesNotExist:
+        return Response({'error': 'Dataset not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def export_csv(request, dataset_id=None):
     """Export dataset as CSV"""
     try:

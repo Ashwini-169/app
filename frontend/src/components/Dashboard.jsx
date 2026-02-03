@@ -204,36 +204,15 @@ function Dashboard({ onLogout }) {
           continue;
         }
         
-        // Fetch the specific dataset's raw data
-        const response = await axios.get(`${API_URL}/api/export/csv/${dataset.id}/`, {
+        // Fetch the specific dataset's data from the proper endpoint
+        const response = await axios.get(`${API_URL}/api/dataset/${dataset.id}/`, {
           headers: getAuthHeaders(),
-          responseType: 'text',
           timeout: 10000, // 10 second timeout
-        });
-        
-        // Parse CSV to get raw data
-        const lines = response.data.split('\n');
-        const headers = lines[0].split(',');
-        const parsedData = lines.slice(1).filter(line => line.trim()).map(line => {
-          const values = line.split(',');
-          return headers.reduce((obj, header, index) => {
-            obj[header.trim()] = values[index]?.trim();
-            return obj;
-          }, {});
         });
 
         // Update summary and raw data with the selected dataset
-        setSummary({
-          total_equipment_count: dataset.total_equipment_count,
-          avg_flowrate: dataset.avg_flowrate,
-          avg_pressure: dataset.avg_pressure,
-          avg_temperature: dataset.avg_temperature,
-          equipment_type_distribution: dataset.equipment_type_distribution,
-          name: dataset.name,
-          id: dataset.id,
-          upload_timestamp: dataset.upload_timestamp,
-        });
-        setRawData(parsedData);
+        setSummary(response.data.summary);
+        setRawData(response.data.raw_data || []);
         setCurrentDatasetId(dataset.id);
         setError(''); // Clear any previous errors
         setLoadingDataset(false);

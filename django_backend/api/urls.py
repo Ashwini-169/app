@@ -5,6 +5,7 @@ urlpatterns = [
     path('health/', views.health_check, name='health_check'),
     path('upload/', views.upload_csv, name='upload_csv'),
     path('summary/latest/', views.get_latest_summary, name='latest_summary'),
+    path('dataset/<int:dataset_id>/', views.get_dataset_detail, name='dataset_detail'),
     path('history/', views.get_history, name='history'),
     path('export/csv/', views.export_csv, name='export_csv'),
     path('export/csv/<int:dataset_id>/', views.export_csv, name='export_csv_by_id'),
