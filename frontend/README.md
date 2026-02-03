@@ -1,23 +1,100 @@
-# Getting Started with Create React App
+# React Frontend - Production Guide
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+React 19 single-page application for Chemical Equipment Parameter Visualization with TailwindCSS and Chart.js.
 
-## Available Scripts
+## 🚀 Quick Start
 
-In the project directory, you can run:
+### Production (Railway)
+```bash
+# Automatically deployed via Docker
+# Frontend running at: https://chemical-visualizer-production-2f4c.up.railway.app
+# Backend API: https://chemical-backend-production-dd2c.up.railway.app
+```
 
-### `npm start`
+### Local Development
+```bash
+cd frontend
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+# Install dependencies
+npm install
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+# Set backend API URL (required)
+export REACT_APP_API_URL=http://localhost:8002
 
-### `npm test`
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+**Frontend running at**: http://localhost:3000  
+**Requires backend at**: `$REACT_APP_API_URL`
+
+---
+
+## 🏗️ Project Structure
+
+```
+frontend/
+├── Dockerfile                      # Production container
+├── package.json                    # Dependencies
+└── src/
+    ├── api.js                      # Centralized API client
+    ├── components/
+    │   ├── Dashboard.jsx
+    │   ├── Login.jsx
+    │   └── Register.jsx
+    └── hooks/
+        └── use-toast.js
+```
+
+---
+
+## 🔧 Environment Variables
+
+**Required at build time**:
+```bash
+REACT_APP_API_URL=https://chemical-backend-production-dd2c.up.railway.app
+```
+
+---
+
+## 📦 Development
+
+```bash
+npm install
+REACT_APP_API_URL=http://localhost:8002 npm start
+npm run build
+```
+
+---
+
+## 🚀 Production
+
+### Docker Build
+```bash
+docker build --build-arg REACT_APP_API_URL=https://your-backend-url -t chemical-frontend .
+```
+
+### Railway
+```bash
+git push origin master  # Auto-deploys with env vars
+```
+
+---
+
+## 🔐 Security
+
+- Centralized API client (api.js) with validation
+- Throws error if REACT_APP_API_URL missing
+- JWT token management
+- CORS configured on backend
+
+---
+
+## 📞 Support
+
+See [django_backend/README.md](../django_backend/README.md) for API details and [README.md](../README.md) for project overview.
+
+---
+
+**Version**: 1.0.0 | **Status**: Production-Ready ✅
 
 ### `npm run build`
 

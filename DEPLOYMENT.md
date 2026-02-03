@@ -1,53 +1,121 @@
-# Defang Deployment Guide
+# Deployment Guide - Railway.app
 
-This guide will help you deploy the Chemical Equipment Visualizer to the cloud using Defang.
+Complete guide for deploying Chemical Equipment Parameter Visualizer to Railway.app production platform.
 
-## Prerequisites
+---
 
-1. Install Defang CLI:
-   ```bash
-   # Windows (PowerShell)
-   iwr https://s.defang.io/install.ps1 -useb | iex
-   
-   # macOS/Linux
-   curl -fsSL https://s.defang.io/install.sh | sh
-   ```
+## 🚀 Quick Deploy
 
-2. Authenticate with Defang:
-   ```bash
-   defang login
-   ```
-
-## Project Structure
-
-- `django_backend/` - Django REST API backend
-- `frontend/` - React frontend
-- `compose.yaml` - Defang deployment configuration
-
-## Deployment Steps
-
-### 1. Navigate to project root
 ```bash
-cd d:\ASHWINI\project\fossdjweb\app
+# 1. Push to GitHub
+git add .
+git commit -m "Update for production"
+git push origin master
+
+# 2. Railway auto-deploys (watch dashboard)
+# Frontend: https://chemical-visualizer-production-2f4c.up.railway.app
+# Backend: https://chemical-backend-production-dd2c.up.railway.app
 ```
 
-### 2. Deploy to Defang
-```bash
-defang compose up
+---
+
+## 📋 Prerequisites
+
+- GitHub repository with git initialized
+- Railway.app account (free tier available)
+- Docker knowledge (basic)
+- Environment variables documented
+
+---
+
+## 🔑 Production Environment Variables
+
+| Variable | Frontend | Backend | Purpose |
+|----------|----------|---------|---------|
+| REACT_APP_API_URL | ✅ | - | API endpoint for frontend |
+| DEBUG | - | ✅ | Django debug mode (False) |
+| ALLOWED_HOSTS | - | ✅ | Allowed domains |
+| SECRET_KEY | - | ✅ | Django secret for CSRF |
+| PORT | - | ✅ | Server port (Railway injects) |
+
+---
+
+## ✅ Deployment Checklist
+
+### Pre-Deployment
+- [ ] `DEBUG = False` in settings.py
+- [ ] `SECRET_KEY` is secure and unique
+- [ ] All migrations applied locally
+- [ ] Docker builds successfully locally
+- [ ] Tests pass locally
+- [ ] Git repository is clean (no uncommitted changes)
+
+### GitHub Setup
+- [ ] Repository is public (or Railway has access)
+- [ ] main/master branch is default
+- [ ] .gitignore includes `*.pyc`, `node_modules/`, `.env`
+
+### Railway Setup
+- [ ] Railway.app account created
+- [ ] GitHub connected
+- [ ] Project created
+- [ ] Both services added (frontend, backend)
+- [ ] Environment variables set
+- [ ] Dockerfile paths correct
+
+### Post-Deployment
+- [ ] Frontend healthcheck passes: `curl https://frontend-url/`
+- [ ] Backend healthcheck passes: `curl https://backend-url/api/health/`
+- [ ] Login endpoint works
+- [ ] Frontend can make API calls
+- [ ] No CORS errors in console
+- [ ] Charts load and display data
+
+---
+
+## 📊 Monitoring Production
+
+### Railway Dashboard
+```
+https://railway.app/dashboard
+├─ Deployments tab: See build history
+├─ Logs tab: Real-time service logs
+├─ Metrics tab: CPU, memory, network
+└─ Settings: Environment variables
 ```
 
-This command will:
-- Build Docker images for both frontend and backend
-- Deploy services to Defang cloud
-- Provide you with public URLs for your services
-
-### 3. Monitor Deployment
+### Health Endpoints
 ```bash
-# Check service status
-defang compose ps
+# Frontend
+curl https://chemical-visualizer-production-2f4c.up.railway.app/
 
-# View logs
-defang compose logs backend
+# Backend
+curl https://chemical-backend-production-dd2c.up.railway.app/api/health/
+```
+
+---
+
+## 🔐 Production Security
+
+### Django Settings
+```python
+DEBUG = False
+ALLOWED_HOSTS = ['*.railway.app']
+SECURE_SSL_REDIRECT = True
+```
+
+### CORS Configuration
+```python
+CORS_ALLOWED_ORIGINS = [
+    'https://chemical-visualizer-production-2f4c.up.railway.app',
+    'https://*.railway.app'
+]
+```
+
+---
+
+**Version**: 1.0.0  
+**Status**: Production-Ready ✅
 defang compose logs frontend
 ```
 
